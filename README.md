@@ -12,14 +12,15 @@ Software for the vaccine carrier monitor device.
 
 ## Requirements
 ### Software
-* Adrduino
+* Arduino IDE
 * Board:
     * ESP32
 * Libraries:
-    * DallasTemperature
-    * BH1750
-    * Adafruit MPU6050
-    * OneWire
+    * DallasTemperature v3.9.0 by Miles Burton
+    * BH1750 v1.3.0 by Christopher Laws
+    * Adafruit MPU6050 v2.2.3 by Adafruit
+    * Adafruit Unified Sensor v1.1.6 by Adafruit 
+    * OneWire v2.3.7 by Paul Stoffegen
 * VSCodium (optional)
 
 ### Hardware
