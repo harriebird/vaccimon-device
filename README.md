@@ -17,14 +17,14 @@ Software for the vaccine carrier monitor device.
     * ESP32
 * Libraries:
     * DallasTemperature v3.9.0 by Miles Burton
-    * BH1750 v1.3.0 by Christopher Laws
     * Adafruit MPU6050 v2.2.3 by Adafruit
     * Adafruit Unified Sensor v1.1.6 by Adafruit 
     * OneWire v2.3.7 by Paul Stoffegen
+    * Adafruit SSD1306 v2.5.7 by Adafruit
 * VSCodium (optional)
 
 ### Hardware
 * DOIT ESP32 DEVKIT V1
 * DS18B20 Temperature Sensor
-* GY-302 BH1750 Light Intensity Sensor
 * GY-521 MPU-6050 Gyro Sensor
+* SSD1306 OLED Display Module
