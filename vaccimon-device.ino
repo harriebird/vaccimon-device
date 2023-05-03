@@ -7,12 +7,10 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <Wire.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
+#include <MPU6050_light.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <BLEDevice.h>
-#include <BLEUtils.h>
 #include <BLEServer.h>
 #include <esp_bt_device.h>
 #include <esp_bt_main.h>
@@ -34,12 +32,11 @@ DallasTemperature temperatureSensor(&temperatureOneWire);
 bool temperatureGood = false;
 
 // Initilize Gyro Sensor
-Adafruit_MPU6050 mpu6050;
-Adafruit_MPU6050_Gyro gyroSensor(&mpu6050);
-bool gyroGood = false;
+MPU6050 mpu6050(Wire);
+byte gyroGood;
 
 // Initialize BLE
-#define BLE_DEVICE_NAME "Vaccimon"
+#define BLE_DEVICE_NAME "VM"
 #define SERVICE_UUID "181A" // Environment Sensing Service
 #define CHARACTERISTIC_UUID "2AF8" // Fixed String 8
 
@@ -51,6 +48,7 @@ String deviceName = BLE_DEVICE_NAME;
 bool deviceConnected = false;
 const uint8_t* macUint;
 String toSend = "";
+float temperature = 0.00;
 
 void displayBleStatus(bool status) {
   display.writeFillRect(0, 0, 128, 16, SSD1306_BLACK);
@@ -86,11 +84,20 @@ class VaccimonServerCallbacks : public BLEServerCallbacks {
 
 void displayTemperature(float temperature) {
   display.writeFillRect(25, 17, 18*5, 24, SSD1306_BLACK);
-  display.drawBitmap(0, 17, bmTemperatureIcon, 14, 24, SSD1306_WHITE);
+  display.drawBitmap(0, 21, bmTemperatureIcon, 14, 24, SSD1306_WHITE);
   display.setTextSize(3);
   display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-  display.setCursor(23, 17);
+  display.setCursor(23, 21);
   display.println(temperature);
+  display.display();
+}
+
+void displayDeviceName(String name) {
+  display.drawBitmap(0, 49, bmDeviceName, 16, 16, SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+  display.setCursor(20, 49);
+  display.println(name);
   display.display();
 }
 
@@ -101,7 +108,7 @@ String uintToHex(uint8_t val) {
 }
 
 void checkSensors() {
-  if(!gyroGood || !temperatureGood) {
+  if(gyroGood != 0 || !temperatureGood) {
     String warning = "Please check your\n sensors.";
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
@@ -114,9 +121,13 @@ void checkSensors() {
 }
 
 void setup() {
+  // Turn off WiFi
+  WiFi.mode(WIFI_OFF);
+  Wire.begin();
+
   Serial.begin(115200);
 
-  // Setup OLED Displa  y 
+  // Setup OLED Display 
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed."));
     for(;;); // Don't proceed, loop forever
@@ -125,17 +136,15 @@ void setup() {
   display.drawBitmap(0, 0, bmSplash, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
   display.display();
 
-  // Turn off WiFi
-  WiFi.mode(WIFI_OFF);
-
   // Setup Temperature Sensor
   temperatureSensor.begin();
   temperatureGood = (temperatureSensor.getDeviceCount() > 0) ? true : false;
   
   // Setup Gyro Sensor
   gyroGood = mpu6050.begin();
-  mpu6050.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu6050.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  while(gyroGood != 0){};
+  delay(1000);
+  mpu6050.calcOffsets();
 
   btStart();
   esp_bluedroid_init();
@@ -161,6 +170,8 @@ void setup() {
   display.clearDisplay();
   checkSensors();
   displayBleStatus(deviceConnected);
+  displayTemperature(temperature);
+  displayDeviceName(deviceName);
 }
 
 void loop() {
@@ -168,21 +179,20 @@ void loop() {
   
   // Read Temperature
   temperatureSensor.requestTemperatures();
-  float temperature = temperatureSensor.getTempCByIndex(0);
+  temperature = temperatureSensor.getTempCByIndex(0);
 
   // Read Gyro
-  sensors_event_t gyroRead;
-  gyroSensor.getEvent(&gyroRead);
+  mpu6050.update();
 
   // Format into JSON-styled String
   toSend = "{\"temperature\":";
   toSend.concat(temperature);
   toSend.concat(", \"gyro\": {\"x\":");
-  toSend.concat(gyroRead.gyro.x);
+  toSend.concat(mpu6050.getAngleX());
   toSend.concat(", \"y\":");
-  toSend.concat(gyroRead.gyro.y);
+  toSend.concat(mpu6050.getAngleY());
   toSend.concat(", \"z\":");
-  toSend.concat(gyroRead.gyro.z);
+  toSend.concat(mpu6050.getAngleZ());
   toSend.concat("}}");
   
   // Sets the Characteristic updated value from sensor
