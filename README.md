@@ -1,5 +1,13 @@
 # vaccimon-device
-Software for the vaccine carrier monitor device.
+
+Software for the vaccine carrier monitoring device. The device is powered by an
+ESP32 Development Board connected with sensors to collect temperature and motion.
+The device information is shown to the health worker using an OLED display,
+which minimizes the need for the vaccine carrier to be opened for temperature
+monitoring. The collected sensor data is also exposed to other devices via BLE
+(Bluetooth Low Energy).
+
+![Device Diagram](img/device-diagram.png)
 
 ## Setup
 1. Clone this repository.
